@@ -2,15 +2,47 @@
 
 import sys
 
-def tax_calculator(salary):
-  try:
-    salary=int(salary)
-  except ValueError:
-    return 'ParameterError'
-  if salary < 0:
-    return "Parameter Error"
-  else:
-    m = salary*(1-0.165) - 3500
+class Config:
+  def __init__(self, confile):
+    self._config = {}
+    self.confile = confile
+
+  def get_confile(self):
+    with open(str(self.confile), 'r') as cfile:
+      for line in cfile:
+        clist_tmp = line.split('=')
+        self._config[clist_tmp[0].strip()] = clist_tmp[1].strip()
+    return self._config
+  #计算五险一金的总参数
+  def social_security(self):
+    self.cdata = self.get_confile()
+    self.result = 0
+    for value in self.cdata.values():
+      self.result += value
+    return result
+
+class Userdata:
+  def __init__(self, userdatafile):
+    self.userdata = {}
+    self.userdatafile = userdatafile
+  def get_userdata(self):
+    with open(str(self.userdatafile), 'r') as ufile:
+      for line in ufile:
+        ulist_tmp = line.split(',')
+        self.userdata[str(ulist_tmp[0])] = ulist_tmp[1]
+    return self.userdata
+
+  def tax_calculator(self):
+    self.udata = self.get_userdata()
+    for key,value in self.udata.items():
+      try:
+        salary=int(value)
+      except ValueError:
+        return 'ParameterError'
+      if salary < 0:
+        return "Parameter Error"
+      else:
+        m = salary*(1-0.165) - 3500
     if m <= 0:
       tax = 0
     elif m <= 1500:
