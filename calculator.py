@@ -1,6 +1,5 @@
 #! /usr/bin/env python3
 
-
 import sys
 
 def tax_calculator(salary):
@@ -10,11 +9,11 @@ def tax_calculator(salary):
     return 'ParameterError'
   if salary < 0:
     return "Parameter Error"
-  elif salary <= 3500:
-    tax = 0
   else:
-    m = salary - 3500
-    if m <= 1500:
+    m = salary*(1-0.165) - 3500
+    if m <= 0:
+      tax = 0
+    elif m <= 1500:
       tax = m*0.03
     elif m > 1500 and m <= 4500:
       tax = m*0.1-105
@@ -28,7 +27,8 @@ def tax_calculator(salary):
       tax = m*0.35-5505
     else:
       tax = m*0.45-13505
-  return format(tax, '.2f')
-
+  return format((salary*(1-0.165)-tax), '.2f')
 if __name__ == '__main__':
-  print(tax_calculator(sys.argv[1]))
+  for arg in sys.argv[1:]:
+    arg_list = arg.split(':')
+    print(arg_list[0]+':'+str(tax_calculator(int(arg_list[1]))))
