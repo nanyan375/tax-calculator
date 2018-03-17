@@ -1,48 +1,74 @@
 #! /usr/bin/env python3
+#-*- coding:utf-8 -*-
 
-import sys
+import sys, csv
+
+class Argvs:
+  def __init__(self):
+    self.args = sys.argv[1:]
+  def argvs_read(self):
+    try:
+      index_c = self.args.index('-c')
+      configfile = self.args[index_c + 1]
+      index_u = self.args.index('-d')
+      userdatafile = self.args[index_u+1]
+      index_o = self.args.index('-o')
+      outputfile = self.args[index_o+1]
+    except:
+      raise
+    return configfile,userdatafile,outputfile
 
 class Config:
-  def __init__(self, confile):
+  def __init__(self, configfile):
     self._config = {}
-    self.confile = confile
-
-  def get_confile(self):
-    with open(str(self.confile), 'r') as cfile:
+    self.configfile = configfile
+  def read_configfile(self):
+    with open(self.configfile, 'r') as cfile:
       for line in cfile:
-        clist_tmp = line.split('=')
-        self._config[clist_tmp[0].strip()] = clist_tmp[1].strip()
+        clist_tmp = line.strip('\n').split('=')
+        try:
+          self._config[clist_tmp[0].strip()] = float(clist_tmp[1].strip())
+        except:
+          print('Type changing has wrong!')
     return self._config
-  #计算五险一金的总参数
-  def social_security(self):
-    self.cdata = self.get_confile()
-    self.result = 0
-    for value in self.cdata.values():
-      self.result += value
-    return result
 
 class Userdata:
   def __init__(self, userdatafile):
     self.userdata = {}
     self.userdatafile = userdatafile
-  def get_userdata(self):
-    with open(str(self.userdatafile), 'r') as ufile:
-      for line in ufile:
-        ulist_tmp = line.split(',')
-        self.userdata[str(ulist_tmp[0])] = ulist_tmp[1]
+  def read_userdata(self):
+    with open(self.userdatafile, 'r') as ufile:
+      reader = csv.reader(ufile)
+      for line in reader:
+        try:
+          self.userdata[int(line[0].strip())] = int(line[1].strip())
+        except ValueError:
+          print('Type changing has wrong!')
     return self.userdata
 
-  def tax_calculator(self):
-    self.udata = self.get_userdata()
-    for key,value in self.udata.items():
-      try:
-        salary=int(value)
-      except ValueError:
-        return 'ParameterError'
+class Sspay:
+  #def __init__(self):
+  def get_sspay(self, configdata, salary):
+    try:
+      percent = configdata['YangLao'] + configdata['YiLiao'] + configdata['ShiYe'] + configdata['GongShang'] + configdata['ShengYu'] + configdata['GongJiJin']
       if salary < 0:
-        return "Parameter Error"
+        raise
+      elif salary >= 0 and salary <= configdata['JiShuL']:
+        self.sspay = configdata['JiShuL'] * percent
+      elif salary >= configdata['JiShuH']:
+        self.sspay = configdata['JiShuH'] * percent
       else:
-        m = salary*(1-0.165) - 3500
+        self.sspay = salary * percent
+    except:
+      print ('something wrong!')
+    return float('%.2f'%self.sspay)
+
+class Tax:
+  def tax_calculator(self, salary, sspay):
+    if salary < 0:
+      return "Parameter Error"
+    else:
+      m = salary - sspay - 3500
     if m <= 0:
       tax = 0
     elif m <= 1500:
@@ -59,8 +85,28 @@ class Userdata:
       tax = m*0.35-5505
     else:
       tax = m*0.45-13505
-  return format((salary*(1-0.165)-tax), '.2f')
+    return float('%.2f'%tax)
+
+def main():
+  argv = Argvs()
+  argvs = argv.argvs_read()
+  config = Config(argvs[0])
+  configdata = config.read_configfile()
+  user = Userdata(argvs[1])
+  userdata = user.read_userdata()
+  tax_cal = Tax()
+  socialsecurity = Sspay()
+  result = []
+  for number,salary in userdata.items():
+    sspay = socialsecurity.get_sspay(configdata, salary)
+    tax = tax_cal.tax_calculator(salary, sspay)
+    net_pay = salary - sspay - tax
+    result.append((number,salary,sspay,tax,float('%.2f'%net_pay)))
+  with open(argvs[2], 'w', newline='') as f:
+    writer = csv.writer(f)
+    for row in result:
+      writer.writerow(row)
+
 if __name__ == '__main__':
-  for arg in sys.argv[1:]:
-    arg_list = arg.split(':')
-    print(arg_list[0]+':'+str(tax_calculator(int(arg_list[1]))))
+  main()
+  
